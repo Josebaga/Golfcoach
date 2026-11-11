@@ -1,0 +1,86 @@
+<!doctype html>
+<html lang="es">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+  <meta name="theme-color" content="#10251d">
+  <meta name="description" content="Analizador biomecánico de swing de golf">
+  <title>Golf Swing Coach</title>
+  <link rel="manifest" href="./manifest.webmanifest">
+  <link rel="icon" href="./icons/icon-192.png">
+  <link rel="apple-touch-icon" href="./icons/icon-192.png">
+  <link rel="stylesheet" href="./style.css">
+</head>
+<body>
+<header>
+  <div class="brand-mark">⛳</div>
+  <div><h1>Golf Swing Coach</h1><p>Tu entrenador de swing en el móvil</p></div>
+  <span class="version">BETA</span>
+</header>
+
+<main>
+  <section class="intro panel">
+    <h2>Analiza tu swing</h2>
+    <p>Carga un vídeo grabado de frente o de lado. La aplicación detectará referencias corporales y te ayudará a revisar el movimiento.</p>
+  </section>
+
+  <section class="panel">
+    <h2>1. Selecciona el vídeo</h2>
+    <label class="file-picker" for="videoFile"><span>＋</span><b>Elegir vídeo</b><small>MP4, MOV o vídeo compatible con tu navegador</small></label>
+    <input id="videoFile" type="file" accept="video/*">
+    <p id="fileName" class="muted">Todavía no has seleccionado ningún vídeo.</p>
+  </section>
+
+  <section class="panel">
+    <h2>2. Posición de la cámara</h2>
+    <div class="segmented">
+      <button class="view-btn active" data-view="side">Lateral</button>
+      <button class="view-btn" data-view="front">Frontal</button>
+    </div>
+    <p id="viewHelp" class="hint">Coloca la cámara perpendicular a tu línea de juego, aproximadamente a la altura de las manos.</p>
+  </section>
+
+  <section class="panel video-panel">
+    <div class="section-heading"><h2>3. Revisa el movimiento</h2><span id="status" class="status">Esperando vídeo</span></div>
+    <div class="video-wrap">
+      <video id="video" controls playsinline></video>
+      <canvas id="overlay"></canvas>
+      <div id="emptyState">Tu vídeo aparecerá aquí</div>
+    </div>
+    <div class="controls">
+      <button id="analyzeBtn" class="primary" disabled>Analizar vídeo</button>
+      <button id="clearBtn" class="secondary" disabled>Limpiar</button>
+    </div>
+    <div class="progress"><div id="progressBar"></div></div>
+    <p id="progressText" class="muted">El análisis procesa fotogramas del vídeo en tu dispositivo.</p>
+  </section>
+
+  <section class="panel">
+    <h2>4. Resultado del análisis</h2>
+    <div id="results" class="results empty">
+      <p>Cuando termines el análisis aparecerán aquí las observaciones del movimiento.</p>
+    </div>
+    <p class="disclaimer">Orientación general, no diagnóstico profesional. La cámara 2D no mide con precisión la rotación tridimensional, la posición de la cara del palo ni el contacto con la bola. La calidad depende de la iluminación, el encuadre y la ropa.</p>
+  </section>
+
+  <section class="panel tips">
+    <h2>Cómo grabarte para obtener mejores resultados</h2>
+    <ul>
+      <li>Graba en horizontal, con el cuerpo entero y el palo dentro del encuadre.</li>
+      <li>Apoya el móvil o utiliza un trípode; evita mover la cámara.</li>
+      <li>Usa buena iluminación y ropa que contraste con el fondo.</li>
+      <li>Graba a 60 fps si tu móvil lo permite.</li>
+      <li>Para vista lateral, sitúa la cámara perpendicular a la línea de juego. Para frontal, frente al jugador.</li>
+    </ul>
+  </section>
+</main>
+<footer>Golf Swing Coach · Análisis experimental en el dispositivo</footer>
+
+<script type="module" src="./app.js"></script>
+<script>
+  if ("serviceWorker" in navigator) {
+    window.addEventListener("load", () => navigator.serviceWorker.register("./sw.js").catch(console.warn));
+  }
+</script>
+</body>
+</html>
