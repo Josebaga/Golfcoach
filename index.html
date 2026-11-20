@@ -1,0 +1,284 @@
+<!doctype html>
+<html lang="es">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<meta name="theme-color" content="#14532d">
+<link rel="manifest" href="manifest.webmanifest">
+<title>Golf Stats</title>
+<style>
+:root{--green:#14532d;--bg:#f3f6f3;--card:#fff;--ink:#17231b;--muted:#647067;--line:#dce5dd}
+*{box-sizing:border-box}body{margin:0;background:var(--bg);color:var(--ink);font:16px system-ui,-apple-system,Segoe UI,Roboto,sans-serif}
+header{background:linear-gradient(135deg,#14532d,#166534);color:white;padding:22px 16px 18px}
+header h1{margin:0;font-size:25px}header p{margin:5px 0 0;color:#d9f99d;font-size:13px}
+main{max-width:760px;margin:auto;padding:14px 12px 90px}
+.card{background:var(--card);border:1px solid var(--line);border-radius:16px;padding:15px;margin:0 0 13px;box-shadow:0 2px 8px #16331b0a}
+h2{font-size:18px;margin:0 0 12px}.row{display:flex;gap:9px;align-items:center}.row>*{flex:1;min-width:0}
+label{display:block;font-size:13px;color:var(--muted);margin:0 0 5px}
+input,select,button{font:inherit}input,select{width:100%;border:1px solid var(--line);border-radius:10px;padding:11px;background:white;color:var(--ink)}
+button{border:0;border-radius:11px;padding:11px 13px;background:var(--green);color:white;font-weight:650;cursor:pointer}
+button.secondary{background:#e8f1e9;color:var(--green)}button.danger{background:#fee2e2;color:#991b1b}button.small{padding:7px 10px;font-size:13px}
+.muted{color:var(--muted);font-size:13px}.hidden{display:none!important}
+.tabs{display:flex;gap:7px;overflow:auto;margin-bottom:13px}.tabs button{white-space:nowrap;background:#e3ebe4;color:#31533b}.tabs button.active{background:var(--green);color:white}
+.holegrid{display:grid;grid-template-columns:repeat(6,1fr);gap:7px}.hole{background:#edf3ee;border:1px solid var(--line);border-radius:10px;padding:8px 3px;text-align:center}
+.hole b{display:block;font-size:13px}.hole input{padding:6px 2px;text-align:center;margin-top:5px}
+.playerline{display:flex;gap:8px;align-items:center;margin:7px 0}.playerline input{flex:1}
+.tablewrap{overflow:auto}table{border-collapse:collapse;width:100%;font-size:14px}th,td{padding:9px 7px;border-bottom:1px solid var(--line);text-align:center;white-space:nowrap}th{color:var(--muted);font-weight:650}td:first-child,th:first-child{text-align:left}
+.scoreinput{width:75px;padding:7px 3px;text-align:center}.statgrid{display:grid;grid-template-columns:repeat(2,1fr);gap:9px}
+.stat{background:#f0f5f0;border-radius:12px;padding:12px}.stat span{display:block;color:var(--muted);font-size:12px}.stat strong{font-size:22px}
+.pill{display:inline-block;background:#e8f1e9;color:#245b31;border-radius:99px;padding:3px 8px;font-size:12px}
+.actions{display:flex;gap:8px;flex-wrap:wrap}.actions button{flex:1}
+.historyitem{border:1px solid var(--line);border-radius:12px;padding:12px;margin:9px 0}.historyitem .actions{margin-top:10px}
+.notice{background:#fff7db;border:1px solid #f1df9c;border-radius:10px;padding:10px;font-size:13px;color:#624d12}
+.nextrow{display:flex;gap:8px;align-items:center;margin-top:12px}.nextrow button{flex:1}.nextrow .muted{flex:1;text-align:center}
+.statusline{font-size:12px;color:var(--muted);margin-top:8px}
+footer{position:fixed;bottom:0;left:0;right:0;background:#ffffffed;border-top:1px solid var(--line);padding:10px 12px calc(10px + env(safe-area-inset-bottom));display:flex;justify-content:center;backdrop-filter:blur(8px)}
+footer button{width:min(736px,100%)}
+@media(min-width:600px){.statgrid{grid-template-columns:repeat(4,1fr)}.holegrid{grid-template-columns:repeat(9,1fr)}}
+</style>
+</head>
+<body>
+<header><h1>⛳ Golf Stats</h1><p>Tu marcador y tus estadísticas de golf</p></header>
+<main>
+ <div class="tabs">
+  <button class="active" data-tab="partida">Partida</button><button data-tab="jugadores">Jugadores</button>
+  <button data-tab="estadisticas">Estadísticas</button><button data-tab="historial">Historial</button>
+ </div>
+ <section id="partida" class="tab">
+  <div class="card">
+   <h2>Nueva partida</h2>
+   <div class="row">
+    <div><label>Nombre del campo</label><input id="courseName" placeholder="Ej. Club de golf"></div>
+    <div><label>Número de hoyos</label><input id="holeCount" type="number" min="1" step="1" inputmode="numeric" value="18"></div>
+   </div>
+   <p class="muted">El par inicial de todos los hoyos es 3. Puedes cambiar cada hoyo a par 4 o par 5.</p>
+   <div id="pars" class="holegrid"></div>
+   <div class="actions" style="margin-top:12px"><button id="newGame">Crear / reiniciar partida</button><button class="secondary" id="saveGame">Guardar partida</button></div>
+  </div>
+  <div class="card">
+   <h2>Marcador por hoyo</h2>
+   <div class="row" style="margin-bottom:10px">
+    <div><label>Hoyo que estás jugando</label><select id="currentHole"></select></div>
+    <div><label>Par</label><div id="currentPar" class="pill" style="padding:11px;text-align:center">Par 3</div></div>
+   </div>
+   <div id="scoreEntry"></div>
+   <p class="muted">Introduce los golpes de todos los jugadores. Cuando estén completos, podrás pasar al siguiente hoyo.</p>
+   <div class="nextrow"><button id="nextHole" disabled>Siguiente hoyo</button></div>
+   <div id="holeStatus" class="statusline" aria-live="polite"></div>
+  </div>
+  <div class="card"><h2>Resumen de la partida</h2><div id="leaderboard" class="tablewrap"></div><div class="actions" style="margin-top:12px"><button class="secondary" id="shareCurrent">Compartir resultados</button></div></div>
+ </section>
+ <section id="jugadores" class="tab hidden">
+  <div class="card"><h2>Jugadores</h2><div class="row"><input id="playerName" placeholder="Nombre del jugador"><button id="addPlayer">Añadir</button></div><div id="playersList" style="margin-top:12px"></div></div>
+ </section>
+ <section id="estadisticas" class="tab hidden">
+  <div class="card">
+   <h2 id="statsHeading">Estadísticas individuales</h2>
+   <div id="statsSource"></div>
+   <label>Seleccionar jugador</label><select id="statsPlayer"></select>
+   <div id="statsContent" style="margin-top:12px"></div>
+  </div>
+  <div class="card"><h2>Comparativa</h2><div id="comparison" class="tablewrap"></div></div>
+ </section>
+ <section id="historial" class="tab hidden"><div class="card"><h2>Partidas guardadas</h2><div id="historyList"></div></div></section>
+</main>
+<footer><button id="quickSave">Guardar partida</button></footer>
+<script>
+const $=id=>document.getElementById(id), storeKey='golfStats_v1';
+let state={course:'',pars:Array(18).fill(3),players:['Jugador 1','Jugador 2'],scores:{},currentHole:1,history:[],savedId:null};
+let selectedHistoryIndex=null;
+
+function load(){
+ try{
+  const x=JSON.parse(localStorage.getItem(storeKey));
+  if(x){state={...state,...x};if(!Array.isArray(state.history))state.history=[];if(!Array.isArray(state.players))state.players=[];if(!Array.isArray(state.pars)||!state.pars.length)state.pars=Array(18).fill(3);
+   // Migración: el par 4 inicial de la versión anterior pasa a par 3 si aún no se había empezado a jugar.
+   const noScores=!state.scores||Object.keys(state.scores).length===0;
+   if(noScores&&state.history.length===0&&state.pars.every(v=>Number(v)===4))state.pars=state.pars.map(()=>3);
+  }
+ }catch(e){}
+ state.currentHole=Math.max(1,Math.min(Number(state.currentHole)||1,state.pars.length));
+}
+function persist(){localStorage.setItem(storeKey,JSON.stringify(state))}
+function scoreFrom(raw,p,h){const v=raw?.[p+'|'+h];return v===''||v==null?null:Number(v)}
+function currentScore(p,h){return scoreFrom(state.scores,p,h)}
+function sumPlayer(p,pars,raw){return pars.reduce((s,_,i)=>s+(scoreFrom(raw,p,i+1)??0),0)}
+function playedPlayer(p,pars,raw){return pars.reduce((s,_,i)=>s+(scoreFrom(raw,p,i+1)!==null?1:0),0)}
+function parPlayedPlayer(p,pars,raw){return pars.reduce((s,par,i)=>s+(scoreFrom(raw,p,i+1)!==null?par:0),0)}
+function fmtDiff(n){return n>0?'+'+n:String(n)}
+function esc(s){return String(s).replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]))}
+function renderPars(){
+ $('pars').innerHTML=state.pars.map((p,i)=>`<div class="hole"><b>H${i+1}</b><input type="number" min="3" max="5" step="1" value="${p}" data-par="${i}" aria-label="Par hoyo ${i+1}"></div>`).join('');
+ $('pars').querySelectorAll('[data-par]').forEach(el=>el.addEventListener('change',e=>{
+  const i=+e.target.dataset.par, v=Number(e.target.value);state.pars[i]=[3,4,5].includes(v)?v:3;e.target.value=state.pars[i];persist();renderHoleOptions();renderScoreEntry();renderLeaderboard();renderStats();
+ }));
+}
+function renderHoleOptions(){
+ $('currentHole').innerHTML=state.pars.map((_,i)=>`<option value="${i+1}">Hoyo ${i+1}</option>`).join('');
+ $('currentHole').value=String(state.currentHole);$('currentPar').textContent='Par '+state.pars[state.currentHole-1];
+}
+function renderScoreEntry(){
+ const h=state.currentHole;
+ $('scoreEntry').innerHTML=state.players.length?state.players.map(p=>`<div class="playerline"><strong style="flex:1">${esc(p)}</strong><input class="scoreinput" type="number" min="1" max="20" inputmode="numeric" placeholder="Golpes" value="${state.scores[p+'|'+h]??''}" data-player="${esc(p)}"></div>`).join(''):'<p class="muted">Añade jugadores en la pestaña Jugadores.</p>';
+ $('scoreEntry').querySelectorAll('[data-player]').forEach(el=>{
+  el.addEventListener('input',e=>{
+   const p=e.target.dataset.player,v=e.target.value;
+   state.scores[p+'|'+h]=v===''?'':Math.max(1,Math.min(20,Number(v)));
+   persist();renderLeaderboard();renderStats();updateNextHole();
+  });
+ });
+ updateNextHole();
+}
+function updateNextHole(){
+ const complete=state.players.length>0&&state.players.every(p=>{
+  const v=state.scores[p+'|'+state.currentHole];return v!==undefined&&v!==''&&Number(v)>=1;
+ });
+ const last=state.currentHole>=state.pars.length;
+ $('nextHole').disabled=!complete;
+ $('nextHole').textContent=last?'Finalizar y guardar':'Siguiente hoyo';
+ $('holeStatus').textContent=complete?(last?'Todos los jugadores han terminado el recorrido.':'Todos los jugadores han anotado. Puedes avanzar.'):`Faltan ${state.players.filter(p=>{const v=state.scores[p+'|'+state.currentHole];return v===undefined||v===''||Number(v)<1}).length} jugador(es) por anotar.`;
+}
+function goNextHole(){
+ if($('nextHole').disabled)return;
+ if(state.currentHole>=state.pars.length){saveGame();alert('Partida finalizada y guardada en el historial.');return;}
+ state.currentHole++;persist();renderHoleOptions();renderScoreEntry();
+ const first=$('scoreEntry').querySelector('input');if(first)first.focus();
+ window.scrollTo({top:$('scoreEntry').getBoundingClientRect().top+window.scrollY-100,behavior:'smooth'});
+}
+
+function renderLeaderboard(){
+ $('leaderboard').innerHTML='<table><thead><tr><th>Jugador</th><th>Hoyos</th><th>Golpes</th><th>Respecto al par</th></tr></thead><tbody>'+state.players.map(p=>{
+  const n=playedPlayer(p,state.pars,state.scores),t=sumPlayer(p,state.pars,state.scores),d=t-parPlayedPlayer(p,state.pars,state.scores);
+  return `<tr><td>${esc(p)}</td><td>${n}/${state.pars.length}</td><td><b>${t}</b></td><td>${n?fmtDiff(d):'—'}</td></tr>`;
+ }).join('')+'</tbody></table>';
+}
+function renderPlayers(){
+ $('playersList').innerHTML=state.players.map((p,i)=>`<div class="playerline"><span style="flex:1">${esc(p)}</span><button class="danger small" data-remove="${i}">Quitar</button></div>`).join('')||'<p class="muted">Todavía no hay jugadores.</p>';
+ $('playersList').querySelectorAll('[data-remove]').forEach(b=>b.onclick=()=>{
+  const p=state.players.splice(+b.dataset.remove,1)[0];Object.keys(state.scores).forEach(k=>{if(k.startsWith(p+'|'))delete state.scores[k]});persist();renderAll();
+ });
+}
+function getStatsSource(){
+ if(selectedHistoryIndex!==null){
+  const g=state.history[selectedHistoryIndex];if(g)return {course:g.course||'Campo sin nombre',pars:g.pars||[],players:g.players||[],raw:g.rawScores||null,totals:g.scores||{},date:g.date||'',saved:true};
+  selectedHistoryIndex=null;
+ }
+ return {course:state.course,pars:state.pars,players:state.players,raw:state.scores,totals:null,date:'',saved:false};
+}
+function renderStats(){
+ const src=getStatsSource(), pars=src.pars, players=src.players;
+ $('statsHeading').textContent=src.saved?'Estadísticas de partida guardada':'Estadísticas individuales';
+ $('statsSource').innerHTML=src.saved?`<div class="notice" style="margin-bottom:12px"><b>${esc(src.course)}</b> · ${esc(src.date)} · ${pars.length} hoyos <button class="secondary small" id="backCurrent" style="float:right">Ver partida actual</button></div>`:'<p class="muted">Estadísticas de la partida que estás jugando.</p>';
+ const back=$('backCurrent');if(back)back.onclick=()=>{selectedHistoryIndex=null;renderStats();};
+ const select=$('statsPlayer'), previous=select.value;
+ select.innerHTML=players.map(p=>`<option value="${esc(p)}">${esc(p)}</option>`).join('');
+ if(players.includes(previous))select.value=previous;
+ const p=select.value;
+ if(!p){$('statsContent').innerHTML='<p class="muted">No hay jugadores en esta partida.</p>';$('comparison').innerHTML='';return}
+ if(src.saved&&!src.raw){
+  const oldTotal=Number(src.totals[p]||0);
+  $('statsContent').innerHTML=`<div class="statgrid"><div class="stat"><span>Golpes totales guardados</span><strong>${oldTotal}</strong></div><div class="stat"><span>Hoyos del recorrido</span><strong>${pars.length}</strong></div></div><p class="notice" style="margin-top:12px">Esta partida se guardó con una versión anterior de Golf Stats que no conservaba los golpes de cada hoyo. Por eso solo podemos mostrar el total, no reconstruir medias ni birdies, pares y bogeys.</p>`;
+  $('comparison').innerHTML='<table><thead><tr><th>Jugador</th><th>Golpes totales</th></tr></thead><tbody>'+players.map(x=>`<tr><td>${esc(x)}</td><td>${Number(src.totals[x]||0)}</td></tr>`).join('')+'</tbody></table>';
+  return;
+ }
+ const raw=src.raw||{}, n=playedPlayer(p,pars,raw), t=sumPlayer(p,pars,raw), d=t-parPlayedPlayer(p,pars,raw);
+ const vals=pars.map((_,i)=>scoreFrom(raw,p,i+1)).filter(v=>v!==null);
+ const buckets={'Albatros o mejor':0,'Eagle':0,'Birdie':0,'Par':0,'Bogey':0,'Doble bogey':0,'Triple bogey o peor':0};
+ pars.forEach((par,i)=>{const s=scoreFrom(raw,p,i+1);if(s===null)return;const x=s-par;if(x<=-3)buckets['Albatros o mejor']++;else if(x===-2)buckets.Eagle++;else if(x===-1)buckets.Birdie++;else if(x===0)buckets.Par++;else if(x===1)buckets.Bogey++;else if(x===2)buckets['Doble bogey']++;else buckets['Triple bogey o peor']++;});
+ $('statsContent').innerHTML=`<div class="statgrid">
+ <div class="stat"><span>Golpes totales</span><strong>${t}</strong></div><div class="stat"><span>Media por hoyo</span><strong>${n?(t/n).toFixed(2):'—'}</strong></div>
+ <div class="stat"><span>Respecto al par</span><strong>${n?fmtDiff(d):'—'}</strong></div><div class="stat"><span>Hoyos jugados</span><strong>${n}/${pars.length}</strong></div>
+ <div class="stat"><span>Mejor hoyo (golpes)</span><strong>${vals.length?Math.min(...vals):'—'}</strong></div><div class="stat"><span>Peor hoyo (golpes)</span><strong>${vals.length?Math.max(...vals):'—'}</strong></div>
+ <div class="stat"><span>Proyección a 18 hoyos</span><strong>${n?Math.round(t/n*18):'—'}</strong></div><div class="stat"><span>Recorrido completado</span><strong>${pars.length?Math.round(n/pars.length*100):0}%</strong></div></div>
+ <h3 style="font-size:15px;margin:17px 0 7px">Distribución de resultados</h3><table><tbody>${Object.entries(buckets).map(([k,v])=>`<tr><td>${k}</td><td><b>${v}</b></td></tr>`).join('')}</tbody></table>`;
+ $('comparison').innerHTML='<table><thead><tr><th>Jugador</th><th>Golpes</th><th>Media</th><th>+/- par</th></tr></thead><tbody>'+players.map(x=>{
+  const xn=playedPlayer(x,pars,raw),xt=sumPlayer(x,pars,raw),xd=xt-parPlayedPlayer(x,pars,raw);
+  return `<tr><td>${esc(x)}</td><td>${xt}</td><td>${xn?(xt/xn).toFixed(2):'—'}</td><td>${xn?fmtDiff(xd):'—'}</td></tr>`;
+ }).join('')+'</tbody></table>';
+}
+function renderHistory(){
+ $('historyList').innerHTML=state.history.length?state.history.map((g,i)=>({g,i})).reverse().map(({g,i})=>`
+ <div class="historyitem"><b>${esc(g.course||'Campo sin nombre')}</b><div class="muted">${esc(g.date||'Fecha desconocida')} · ${(g.pars||[]).length} hoyos</div>
+ <div>${(g.players||[]).map(p=>`${esc(p)}: ${Number(g.scores?.[p]||0)} golpes`).join(' · ')}</div>
+ <div class="actions"><button class="secondary small" data-view="${i}">Ver estadísticas</button><button class="secondary small" data-share="${i}">Compartir</button><button class="danger small" data-delete="${i}">Borrar partida</button></div></div>`).join(''):'<p class="muted">Todavía no hay partidas guardadas. Pulsa Guardar partida al terminar.</p>';
+ $('historyList').querySelectorAll('[data-view]').forEach(b=>b.onclick=()=>{
+  selectedHistoryIndex=Number(b.dataset.view);showTab('estadisticas');renderStats();
+ });
+ $('historyList').querySelectorAll('[data-share]').forEach(b=>b.onclick=()=>shareSavedRound(Number(b.dataset.share)));
+ $('historyList').querySelectorAll('[data-delete]').forEach(b=>b.onclick=()=>{
+  const i=Number(b.dataset.delete),g=state.history[i];if(!g)return;
+  if(!confirm(`¿Quieres borrar la partida "${g.course||'Campo sin nombre'}" del ${g.date||'fecha desconocida'}? Esta acción no se puede deshacer.`))return;
+  state.history.splice(i,1);if(selectedHistoryIndex===i)selectedHistoryIndex=null;else if(selectedHistoryIndex!==null&&selectedHistoryIndex>i)selectedHistoryIndex--;
+  persist();renderHistory();renderStats();
+ });
+}
+function buildSnapshot(){
+ state.course=$('courseName').value.trim();
+ const snapshot={id:state.savedId||('round-'+Date.now()),course:state.course,pars:[...state.pars],players:[...state.players],date:new Date().toLocaleString('es-ES'),scores:{},rawScores:{...state.scores}};
+ state.players.forEach(p=>snapshot.scores[p]=sumPlayer(p,state.pars,state.scores));
+ return snapshot;
+}
+function saveGame(){
+ const snapshot=buildSnapshot();
+ const existing=state.savedId?state.history.findIndex(g=>g.id===state.savedId):-1;
+ if(existing>=0)state.history[existing]=snapshot;else state.history.push(snapshot);
+ state.savedId=snapshot.id;persist();renderHistory();
+}
+function roundShareText(g){
+ const pars=g.pars||[],players=g.players||[],raw=g.rawScores||{};
+ const lines=[`⛳ GOLF STATS — ${g.course||'Campo sin nombre'}`,g.date||'',`${pars.length} hoyos`,''];
+ lines.push('Jugador | Golpes | +/- par');
+ for(const p of players){const n=playedPlayer(p,pars,raw),t=sumPlayer(p,pars,raw),d=t-parPlayedPlayer(p,pars,raw);lines.push(`${p} | ${t} | ${n?fmtDiff(d):'—'}`)}
+ lines.push('','Detalle por hoyo:');
+ lines.push(['Hoyo',...players].join(' | '));
+ pars.forEach((_,i)=>lines.push([`H${i+1}`,...players.map(p=>{const v=scoreFrom(raw,p,i+1);return v===null?'—':v})].join(' | ')));
+ return lines.join('\n');
+}
+async function shareRound(g){
+ const text=roundShareText(g);
+ if(navigator.share){try{await navigator.share({title:'Resultados Golf Stats',text});return}catch(e){if(e.name==='AbortError')return}}
+ try{await navigator.clipboard.writeText(text);alert('Resultados copiados. Ya puedes pegarlos en WhatsApp o donde quieras.')}catch(e){prompt('Copia estos resultados para compartirlos:',text)}
+}
+function shareCurrentRound(){shareRound(buildSnapshot())}
+function shareSavedRound(i){const g=state.history[i];if(g)shareRound(g)}
+
+function showTab(tab){
+ document.querySelectorAll('[data-tab]').forEach(x=>x.classList.toggle('active',x.dataset.tab===tab));
+ document.querySelectorAll('.tab').forEach(x=>x.classList.toggle('hidden',x.id!==tab));
+}
+function renderAll(){
+ renderPars();$('holeCount').value=state.pars.length;$('courseName').value=state.course;
+ renderHoleOptions();renderScoreEntry();renderLeaderboard();renderPlayers();renderStats();renderHistory();
+}
+$('holeCount').addEventListener('change',()=>{
+ const raw=Number($('holeCount').value),n=Math.floor(raw);
+ if(!Number.isFinite(n)||n<1){alert('Introduce un número de hoyos mayor que cero.');$('holeCount').value=state.pars.length;return}
+ if(n>999){alert('El máximo permitido es 999 hoyos.');$('holeCount').value=state.pars.length;return}
+ const old=state.pars.length;
+ if(n<old){
+  const hasScores=Object.keys(state.scores).some(k=>Number(k.split('|').pop())>n&&state.scores[k]!=='');
+  if(hasScores&&!confirm('Al reducir el recorrido se eliminarán los golpes introducidos en los hoyos que queden fuera. ¿Continuar?')){$('holeCount').value=old;return}
+  Object.keys(state.scores).forEach(k=>{if(Number(k.split('|').pop())>n)delete state.scores[k]});
+ }
+ state.pars=Array.from({length:n},(_,i)=>state.pars[i]??3);state.currentHole=Math.min(state.currentHole,n);persist();renderAll();
+});
+$('courseName').addEventListener('change',e=>{state.course=e.target.value;persist()});
+$('currentHole').addEventListener('change',e=>{state.currentHole=Number(e.target.value);renderHoleOptions();renderScoreEntry()});
+$('newGame').onclick=()=>{
+ if(!confirm('¿Crear una partida nueva? Se borrarán los golpes de la partida actual, pero se conservará el historial.'))return;
+ state.scores={};state.currentHole=1;state.savedId=null;state.course=$('courseName').value.trim();persist();renderAll();
+};
+$('saveGame').onclick=()=>{saveGame();alert('Partida guardada en el historial.')};$('quickSave').onclick=()=>{saveGame();alert('Partida guardada en el historial.')};
+$('nextHole').onclick=goNextHole;$('shareCurrent').onclick=shareCurrentRound;
+$('addPlayer').onclick=()=>{
+ const n=$('playerName').value.trim();if(!n)return;if(state.players.includes(n)){alert('Ese jugador ya está en la partida.');return}
+ state.players.push(n);$('playerName').value='';persist();renderAll();
+};
+$('statsPlayer').onchange=renderStats;
+document.querySelectorAll('[data-tab]').forEach(b=>b.onclick=()=>{showTab(b.dataset.tab);if(b.dataset.tab==='estadisticas')renderStats()});
+load();renderAll();
+if('serviceWorker' in navigator&&location.protocol.startsWith('http')){
+ navigator.serviceWorker.register('./sw.js').then(reg=>reg.update()).catch(()=>{});
+}
+</script>
+</body></html>
